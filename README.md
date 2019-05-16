@@ -1,35 +1,17 @@
 # Speak 'Friend' and Enter: Textual Analysis of The Lord of the Rings
 
 ## Table of Contents
-<<<<<<< HEAD
 * [Problem Statement](#user-content-problem-statement)
 * [Executive Summary](#user-content-executive-summary)
-* [Use Case Scenario](#user-content-use-case-scenario)
-* [Data Acquisition and Processing](#user-content-data-acquisition-and-processing)
 * [Required Libraries](#user-content-required-libraries)
 * [Opportunities for Further Improvements](#user-content-opportunities-for-further-improvements)
 * [References](#user-content-references)
 
 ## Problem Statement
->>>>>>> edfe6b44c33f257bfb6df5e821052525f1029187
 
 During the recovery phase immediately following a disaster, FEMA performs damage assessment “on the ground” to assess the level of damage caused to residential parcels and to critical infrastructure. To assure an accurate estimation of the damage, it is important to understand the condition of the structures prior to the event. To help and guide the damage assessment efforts following a disaster, and to assist the surveyors in identification of the structures of interest, SightVisit. It will retrieve screen shots of the structures from Google Street View. A damage assessment form, which, in addition to relevant information about the level of damage to the structures, will also provide a pre-event photo of the assessed structure.
 
 ## Executive Summary
-
-## Data Acquisition
-
-Data integration is provided through the following APIs: 
-* [Google Street View Static API](https://developers.google.com/maps/documentation/streetview/intro)
-* [Google Geocoding API](https://developers.google.com/maps/documentation/geocoding/start)
-* [Zillow GetDeepSearch-Results API](https://www.zillow.com/howto/api/GetDeepSearchResults.htm)
-
-For ease of use, we have utilized the following Python API Wrappers:
-*  [google streetview](https://github.com/rrwen/google_streetview)
-*  [pyzillow](https://github.com/hanneshapke/pyzillow)
-*  [pygeocoder](pygeocoder)
-
-Note that Google charges for API calls to its Google Maps APIs, but provides a free 1-year $300 credit to its Cloud Platform.
 
 ## Required Libraries
 * Python 3.x
