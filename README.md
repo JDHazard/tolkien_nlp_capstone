@@ -1,4 +1,5 @@
-# Speak 'Friend' and Enter: Textual Analysis of The Lord of the Rings
+# Speak 'Friend' and Enter: 
+# Textual Analysis of The Lord of the Rings
 
 ## Table of Contents
 * [Problem Statement](#user-content-problem-statement)
