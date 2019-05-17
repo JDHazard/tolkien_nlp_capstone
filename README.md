@@ -23,6 +23,7 @@ Split into three parts by the publisher, the majority of our textual analysis is
 
 Preprocessing: 
 For us to fit our text, or corpus, to any model and expect meaningful results, we must first go through a few stages of preprocessing. Removing punctuation, reducing each word to its root or lemma, and eliminating stop words may seem crude and primitive at the outset. Unfortunately, our computers' programming cannot understand the raw text. They must be taught to 'read' it by assigning words to numerical values. Preprocessing is the first step in this process. 
+
 Stop Words:
 Our models are sensitive to the removal of words from the corpus because they depend on words counts and the relationships between them to interpret the text. Stop words are the most commonly used words, mostly articles and prepositions, that interfere with an algorithm's predictions. Why? Because of their document frequency, the model thinks they're essential. 
 
