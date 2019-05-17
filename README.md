@@ -18,7 +18,7 @@ My goal is to use NLP as a method of literary criticism and, much like the X var
 There is unprecedented access to the written word. The impossibility of reading and understanding even a small percentage of it is daunting. Machine learning algorithms such as Topic Modeling and Word2Vec have proven useful in classifying general topics in non-fiction and scientific documents. Can these methods and techniques be used to illuminate one of the greatest literary achievements in the English language? Let's find out. 
 
 Corpus: 
-['The Lord of the Rings'] (https://en.wikipedia.org/wiki/The_Lord_of_the_Rings) Written by English author and scholar [J.R.R. Tolkien](https://en.wikipedia.org/wiki/J._R._R._Tolkien) in stages between 1937 and 1949. It is widely considered the germinal work of epic high fantasy. 
+['The Lord of the Rings'](https://en.wikipedia.org/wiki/The_Lord_of_the_Rings) Written by English author and scholar [J.R.R. Tolkien](https://en.wikipedia.org/wiki/J._R._R._Tolkien) in stages between 1937 and 1949. It is widely considered the germinal work of epic high fantasy. 
 Split into three parts by the publisher, the majority of our textual analysis is on the complete work. 
 
 Preprocessing: 
