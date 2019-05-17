@@ -49,7 +49,7 @@ My recommendations moving forward are to examine the fundamental assumptions the
 
 
 ## Links to Relevant Notebooks
-* [Preprocessing Text and Stop Words](tolkien_nlp_capstone/preprocessing_stopwords_plotly.ipynb)
+* [Preprocessing Text and Stop Words](https://github.com/JDHazard/tolkien_nlp_capstone/blob/master/preprocessing_stopwords_plotly.ipynb)
 * [Topic Modelling on the Complete LotR Text](https://github.com/JDHazard/tolkien_nlp_capstone/blob/master/topic_modeling_LotR_complete.ipynb)
 * [Word2Vec on the Complete LotR Text](https://github.com/JDHazard/tolkien_nlp_capstone/blob/master/word2vec_lotr_complete.ipynb)
 * [Topic Modelling on Each Book of the Trilogy](https://github.com/JDHazard/tolkien_nlp_capstone/tree/master/topic_modelling_books_trilogy)
