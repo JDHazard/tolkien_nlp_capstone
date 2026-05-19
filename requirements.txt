@@ -3,3 +3,6 @@ gensim
 scikit-learn
 pandas
 numpy
+matplotlib
+seaborn
+sentence-transformers
