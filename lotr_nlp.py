@@ -27,40 +27,30 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 RESOURCE_PATHS = {
     "punkt": "tokenizers/punkt",
+    # NLTK 3.9+ split the sentence/word tokenizer data out of "punkt" into a
+    # separate "punkt_tab" package; sent_tokenize/word_tokenize fail without it.
+    "punkt_tab": "tokenizers/punkt_tab",
     "wordnet": "corpora/wordnet",
     "omw-1.4": "corpora/omw-1.4",
     "stopwords": "corpora/stopwords",
 }
 
 DEFAULT_CHAPTER_PATTERN = re.compile(
-    r"^(?:\* PROLOGUE \*|BOOK\s+[IVX]+|Chapter\s+\d+(?:\s*\.\s*.*)?|\d+\.\s*.+)$",
+    r"^(?:\*\s*PROLOGUE\s*\*|\*\s*BOOK\s+[IVX]+\s*\*|Chapter\s+\d+\s*\.\s*.*)$",
     re.IGNORECASE,
 )
 
 
-def ensure_nltk_resources(resources: Optional[Sequence[str]] = None, download_on_missing: bool = True) -> None:
-    """Ensure required NLTK resources are available, optionally downloading missing ones."""
+def ensure_nltk_resources(resources: Optional[Sequence[str]] = None) -> None:
+    """Download required NLTK resources if they are missing."""
     resources = resources or list(RESOURCE_PATHS)
     for resource in resources:
         resource_path = RESOURCE_PATHS.get(resource, f"corpora/{resource}")
         try:
             nltk.data.find(resource_path)
         except LookupError:
-            if download_on_missing:
-                logger.info("Downloading NLTK resource: %s", resource)
-                try:
-                    nltk.download(resource, quiet=True)
-                except Exception as exc:
-                    logger.warning(
-                        "Could not download NLTK resource %s: %s", resource, exc
-                    )
-            try:
-                nltk.data.find(resource_path)
-            except LookupError:
-                logger.warning(
-                    "NLTK resource %s is not available; some NLP features may be degraded.",
-                    resource,
-                )
+            logger.info("Downloading NLTK resource: %s", resource)
+            nltk.download(resource, quiet=True)
 
 
 def load_text(path: str | Path, remove_newlines: bool = True) -> str:
@@ -80,18 +70,11 @@ def tokenize_text(text: str, preserve_case: bool = False, token_pattern: str = r
 
 def get_stopwords(extra: Optional[Iterable[str]] = None) -> set[str]:
     """Return the default English stop words plus any extra terms."""
-    stop_words: set[str]
-    try:
-        ensure_nltk_resources(["stopwords"])
-        stop_words = set(nltk_stopwords.words("english"))
-    except Exception as exc:
-        logger.warning(
-            "NLTK stopwords unavailable; falling back to sklearn stopwords: %s", exc
-        )
-        stop_words = set(sklearn_text.ENGLISH_STOP_WORDS)
+    ensure_nltk_resources(["stopwords"])
+    words = set(nltk_stopwords.words("english"))
     if extra:
-        stop_words.update(word.lower() for word in extra)
-    return stop_words
+        words.update(word.lower() for word in extra)
+    return words
 
 
 def remove_stopwords(tokens: Sequence[str], stop_words: Optional[Iterable[str]] = None) -> List[str]:
@@ -101,12 +84,7 @@ def remove_stopwords(tokens: Sequence[str], stop_words: Optional[Iterable[str]] 
 
 
 def lemmatize_tokens(tokens: Sequence[str]) -> List[str]:
-    """Lemmatize a sequence of tokens, or return originals if WordNet is unavailable."""
-    try:
-        nltk.data.find(RESOURCE_PATHS["wordnet"])
-    except LookupError:
-        logger.warning("WordNet resource unavailable; skipping lemmatization.")
-        return list(tokens)
+    """Lemmatize a sequence of tokens."""
     lemmatizer = WordNetLemmatizer()
     return [lemmatizer.lemmatize(token) for token in tokens]
 
@@ -131,16 +109,9 @@ def tokens_to_string(tokens: Sequence[str], separator: str = " ") -> str:
 
 def build_sentences(text: str, preserve_case: bool = False) -> List[List[str]]:
     """Tokenize text into cleaned sentences for Word2Vec or document chunks."""
-    try:
-        ensure_nltk_resources(["punkt"])
-        raw_sentences = sent_tokenize(text)
-    except Exception:
-        logger.warning(
-            "NLTK punkt tokenizer unavailable; falling back to simple sentence splitting."
-        )
-        raw_sentences = re.split(r"(?<=[.!?])\s+", text)
+    ensure_nltk_resources(["punkt", "punkt_tab"])
     sentences: List[List[str]] = []
-    for raw_sentence in raw_sentences:
+    for raw_sentence in sent_tokenize(text):
         tokens = [token.lower() for token in word_tokenize(raw_sentence) if token.isalpha()]
         if tokens:
             sentences.append(tokens if preserve_case else [token.lower() for token in tokens])
@@ -159,27 +130,29 @@ def chunk_documents(sentences: Sequence[Sequence[str]], chunk_size: int = 20) ->
 
 
 class LemmaCountVectorizer(CountVectorizer):
-    """A CountVectorizer that lemmatizes tokens during analysis."""
+    """A CountVectorizer that lemmatizes tokens during analysis.
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._lemmatizer = WordNetLemmatizer()
+    Deliberately does not override ``__init__``: scikit-learn's
+    ``get_params``/``clone`` machinery inspects the constructor signature, and
+    a ``*args, **kwargs`` override breaks that introspection on modern
+    scikit-learn versions. Overriding only ``build_analyzer`` keeps
+    ``CountVectorizer``'s own signature intact.
+    """
 
     def build_analyzer(self):
+        lemmatizer = WordNetLemmatizer()
         analyzer = super().build_analyzer()
-        return lambda doc: (self._lemmatizer.lemmatize(w) for w in analyzer(doc))
+        return lambda doc: (lemmatizer.lemmatize(w) for w in analyzer(doc))
 
 
 class LemmaTfidfVectorizer(TfidfVectorizer):
-    """A TfidfVectorizer that lemmatizes tokens during analysis."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._lemmatizer = WordNetLemmatizer()
+    """A TfidfVectorizer that lemmatizes tokens during analysis. See
+    ``LemmaCountVectorizer`` for why ``__init__`` is not overridden."""
 
     def build_analyzer(self):
+        lemmatizer = WordNetLemmatizer()
         analyzer = super().build_analyzer()
-        return lambda doc: (self._lemmatizer.lemmatize(w) for w in analyzer(doc))
+        return lambda doc: (lemmatizer.lemmatize(w) for w in analyzer(doc))
 
 
 def build_document_term_matrix(
@@ -329,7 +302,12 @@ def split_text_into_chapters(text: str, title_pattern: re.Pattern = DEFAULT_CHAP
 
 
 def load_book_texts(book_dir: str | Path) -> List[Tuple[str, str]]:
-    """Load the trilogy book files from a directory."""
+    """Load the trilogy book files from a directory.
+
+    Keeps newlines (``remove_newlines=False``): ``split_text_into_chapters``
+    finds chapter headings line by line, so flattening the text to one long
+    line here would leave it with nothing to split on.
+    """
     book_dir = Path(book_dir)
     candidates = sorted(book_dir.glob("the_*.txt"))
     book_files = [path for path in candidates if path.name != "Lord_of_the_Rings_complete.txt"]
