@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title }}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 1000px; padding: 0 1rem; }
+    h1   { font-size: 1.4rem; }
+    .note { color: #555; }
+  </style>
+</head>
+<body>
+  <h1>{{ page_title }}</h1>
+  <p class="note">{{ description }}</p>
+  {{ fig | safe }}
+</body>
+</html>
