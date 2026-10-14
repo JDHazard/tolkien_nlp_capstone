@@ -33,21 +33,34 @@ RESOURCE_PATHS = {
 }
 
 DEFAULT_CHAPTER_PATTERN = re.compile(
-    r"^(?:\* PROLOGUE \*|BOOK\s+[IVX]+|Chapter\s+\d+\.?|\d+\..+)$",
+    r"^(?:\* PROLOGUE \*|BOOK\s+[IVX]+|Chapter\s+\d+(?:\s*\.\s*.*)?|\d+\.\s*.+)$",
     re.IGNORECASE,
 )
 
 
-def ensure_nltk_resources(resources: Optional[Sequence[str]] = None) -> None:
-    """Download required NLTK resources if they are missing."""
+def ensure_nltk_resources(resources: Optional[Sequence[str]] = None, download_on_missing: bool = True) -> None:
+    """Ensure required NLTK resources are available, optionally downloading missing ones."""
     resources = resources or list(RESOURCE_PATHS)
     for resource in resources:
         resource_path = RESOURCE_PATHS.get(resource, f"corpora/{resource}")
         try:
             nltk.data.find(resource_path)
         except LookupError:
-            logger.info("Downloading NLTK resource: %s", resource)
-            nltk.download(resource, quiet=True)
+            if download_on_missing:
+                logger.info("Downloading NLTK resource: %s", resource)
+                try:
+                    nltk.download(resource, quiet=True)
+                except Exception as exc:
+                    logger.warning(
+                        "Could not download NLTK resource %s: %s", resource, exc
+                    )
+            try:
+                nltk.data.find(resource_path)
+            except LookupError:
+                logger.warning(
+                    "NLTK resource %s is not available; some NLP features may be degraded.",
+                    resource,
+                )
 
 
 def load_text(path: str | Path, remove_newlines: bool = True) -> str:
@@ -67,11 +80,18 @@ def tokenize_text(text: str, preserve_case: bool = False, token_pattern: str = r
 
 def get_stopwords(extra: Optional[Iterable[str]] = None) -> set[str]:
     """Return the default English stop words plus any extra terms."""
-    ensure_nltk_resources(["stopwords"])
-    words = set(nltk_stopwords.words("english"))
+    stop_words: set[str]
+    try:
+        ensure_nltk_resources(["stopwords"])
+        stop_words = set(nltk_stopwords.words("english"))
+    except Exception as exc:
+        logger.warning(
+            "NLTK stopwords unavailable; falling back to sklearn stopwords: %s", exc
+        )
+        stop_words = set(sklearn_text.ENGLISH_STOP_WORDS)
     if extra:
-        words.update(word.lower() for word in extra)
-    return words
+        stop_words.update(word.lower() for word in extra)
+    return stop_words
 
 
 def remove_stopwords(tokens: Sequence[str], stop_words: Optional[Iterable[str]] = None) -> List[str]:
@@ -81,7 +101,12 @@ def remove_stopwords(tokens: Sequence[str], stop_words: Optional[Iterable[str]] 
 
 
 def lemmatize_tokens(tokens: Sequence[str]) -> List[str]:
-    """Lemmatize a sequence of tokens."""
+    """Lemmatize a sequence of tokens, or return originals if WordNet is unavailable."""
+    try:
+        nltk.data.find(RESOURCE_PATHS["wordnet"])
+    except LookupError:
+        logger.warning("WordNet resource unavailable; skipping lemmatization.")
+        return list(tokens)
     lemmatizer = WordNetLemmatizer()
     return [lemmatizer.lemmatize(token) for token in tokens]
 
@@ -106,9 +131,16 @@ def tokens_to_string(tokens: Sequence[str], separator: str = " ") -> str:
 
 def build_sentences(text: str, preserve_case: bool = False) -> List[List[str]]:
     """Tokenize text into cleaned sentences for Word2Vec or document chunks."""
-    ensure_nltk_resources(["punkt"])
+    try:
+        ensure_nltk_resources(["punkt"])
+        raw_sentences = sent_tokenize(text)
+    except Exception:
+        logger.warning(
+            "NLTK punkt tokenizer unavailable; falling back to simple sentence splitting."
+        )
+        raw_sentences = re.split(r"(?<=[.!?])\s+", text)
     sentences: List[List[str]] = []
-    for raw_sentence in sent_tokenize(text):
+    for raw_sentence in raw_sentences:
         tokens = [token.lower() for token in word_tokenize(raw_sentence) if token.isalpha()]
         if tokens:
             sentences.append(tokens if preserve_case else [token.lower() for token in tokens])
@@ -302,7 +334,7 @@ def load_book_texts(book_dir: str | Path) -> List[Tuple[str, str]]:
     candidates = sorted(book_dir.glob("the_*.txt"))
     book_files = [path for path in candidates if path.name != "Lord_of_the_Rings_complete.txt"]
     return [
-        (path.stem.replace("the_", "").replace("_", " ").title(), load_text(path))
+        (path.stem.replace("the_", "").replace("_", " ").title(), load_text(path, remove_newlines=False))
         for path in book_files
     ]
 
